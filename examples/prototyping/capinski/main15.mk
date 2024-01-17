@@ -1,7 +1,7 @@
 CXX=g++
 CXXFLAGS=-std=c++11 -Wall
-TARGET=simplemc2
-FILES=Main02.cpp
+TARGET=main15
+FILES=Main15.cpp
 
 all:$(TARGET)
 

@@ -1,0 +1,8 @@
+# Emacs stuff
+*~
+~*~
+#*#
+
+# C++ compilation
+*.out*
+*.o

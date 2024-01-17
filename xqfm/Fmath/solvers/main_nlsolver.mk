@@ -1,7 +1,7 @@
 CXX=g++
-CXXFLAGS=-std=c++11 -Wall
-TARGET=simplemc2
-FILES=Main02.cpp
+CXXFLAGS=-std=c++11 -Wall -I$(HOME)/projects/CoDiPack/include/
+TARGET=main_nlsolver
+FILES=main_nlsolver.cpp 
 
 all:$(TARGET)
 
@@ -10,5 +10,3 @@ $(TARGET): $(FILES)
 
 clean:
 	rm -f $(TARGET)
-
-

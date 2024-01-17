@@ -1,7 +1,7 @@
 CXX=g++
 CXXFLAGS=-std=c++11 -Wall
-TARGET=simplemc2
-FILES=Main02.cpp
+TARGET=main22
+FILES=Main22.cpp PathDepOption04.cpp  GmtrAsianCall.cpp EurCall.cpp BSModel01.cpp
 
 all:$(TARGET)
 
