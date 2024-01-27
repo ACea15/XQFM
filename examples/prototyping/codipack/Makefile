@@ -13,7 +13,7 @@ TGT_FILES := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%,$(SRC_FILES))
 
 all: $(TGT_FILES)
 	rm -f $(OBJ_FILES)
-$(TGT_FILES): $(OBJ_FILES)
+$(TGT_FILES): % : %.o 
 	$(CXX) $(LDFLAGS) -o $@ $<
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
