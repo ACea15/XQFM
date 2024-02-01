@@ -25,6 +25,7 @@ int main(int nargs, char** args) {
  
   // Step 2: Evaluate function without updating the global variable
   x.setGradient(1.0);
+  // global = 0.;
   y = func(x, false);
  
   std::cout << "No update global:" << std::endl;

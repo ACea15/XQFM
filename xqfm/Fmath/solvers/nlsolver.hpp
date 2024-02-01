@@ -1,5 +1,8 @@
 #pragma once
 #include <codi.hpp>
+#include <iostream>
+using namespace std;
+
 using Real = codi::RealForward;
 
 template <typename Function>
@@ -23,14 +26,18 @@ Real SolveByBisect(Function *Fct, double Tgt, double LEnd, double REnd,
 template <typename Function>
 Real SolveByNR(Function *Fct, double Tgt, Real Guess, double Acc) {
   Real x_prev = Guess;
-  //x_prev.setGradient(1.0);
-  Real x_next = x_prev - (Fct->Value(x_prev, true) - Tgt) / Fct->GetDeriv();
+  x_prev.setGradient(1.0);
+  Real Fvalue = Fct->Value(x_prev, true);
+  Real Fder = Fct->GetDeriv();
+  cout << "der: " << Fder << endl;
+  Real x_next = x_prev - (Fvalue - Tgt) / Fder;
+  cout << "x_next: " << x_next << endl;
   //Real try1=Fct->Value(x_next+1);
   while (x_next - x_prev > Acc || x_prev - x_next > Acc) {
     //Real try2=Fct->Value(x_prev+1);
     x_prev = x_next;
     x_prev.setGradient(1.0);
-    Real try3=Fct->Value(x_prev+1, true);
+    // Real try3=Fct->Value(x_prev+1, true);
     Real fctvalue = Fct->Value(x_prev, true);
     Real fctderv = Fct->GetDeriv();
     x_next = x_prev - (fctvalue - Tgt) / fctderv;

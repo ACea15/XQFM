@@ -30,9 +30,10 @@ int main() {
   cout << "Root of F1 by bisect: " << SolveByBisect(&MyF1, Tgt, LEnd, REnd, Acc)
        << endl;
 
-  Real Guess = 1.0;
+  Real Guess = 0.5;
   Guess.setGradient(1.0);
-  cout << "Root of F1 by Newton-Raphson: " << SolveByNR(&MyF1, Tgt, Guess, Acc)
+  Real sol_nr = SolveByNR(&MyF1, Tgt, Guess, Acc);
+  cout << "Root of F1 by Newton-Raphson: " << sol_nr
        << endl;
   return 0;
 }

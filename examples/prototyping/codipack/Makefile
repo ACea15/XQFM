@@ -11,8 +11,12 @@ TGT_FILES := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%,$(SRC_FILES))
 # CPPFLAGS := ...
 # CXXFLAGS := ...
 
+# # .PHONY means these rules get executed even if
+# # files of those names exist.
+# .PHONY: all clean
+
 all: $(TGT_FILES)
-	rm -f $(OBJ_FILES)
+# rm -f $(OBJ_FILES)
 $(TGT_FILES): % : %.o 
 	$(CXX) $(LDFLAGS) -o $@ $<
 
