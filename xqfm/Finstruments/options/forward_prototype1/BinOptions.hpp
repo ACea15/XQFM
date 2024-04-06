@@ -1,6 +1,6 @@
 #include "BinModel.hpp"
 #include <codi.hpp>
-using Real = codi::RealReverse;
+using Real = codi::RealForward;
 
 class Option
 {

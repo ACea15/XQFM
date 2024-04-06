@@ -3,7 +3,7 @@
 //                      TreeMain.cpp
 //
 //
-//      
+//
 /*
 requires
     Arrays.cpp
@@ -20,93 +20,95 @@ requires
     TreeProducts.cpp
   */
 #include <BinomialTree.h>
-#include <TreeAmerican.h>
-#include <TreeEuropean.h>
 #include <BlackScholesFormulas.h>
 #include <PayOffForward.h>
+#include <TreeAmerican.h>
+#include <TreeEuropean.h>
 #include <iostream>
 using namespace std;
 #include <cmath>
-int main()
-{
+int main() {
 
-	double Expiry;
-	double Strike; 
-	double Spot; 
-	double Vol; 
-	double r;
-    double d;
-	unsigned long Steps;
+  double Expiry;
+  double Strike;
+  double Spot;
+  double Vol;
+  double r;
+  double d;
+  unsigned long Steps;
 
-	cout << "\nEnter expiry\n";
-	cin >> Expiry;
+  cout << "\nEnter expiry\n";
+  cin >> Expiry;
 
-	cout << "\nStrike\n";
-	cin >> Strike;
+  cout << "\nStrike\n";
+  cin >> Strike;
 
-	cout << "\nEnter spot\n";
-	cin >> Spot;
+  cout << "\nEnter spot\n";
+  cin >> Spot;
 
-	cout << "\nEnter vol\n";
-	cin >> Vol;
+  cout << "\nEnter vol\n";
+  cin >> Vol;
 
-	cout << "\nr\n";
-	cin >> r;
+  cout << "\nr\n";
+  cin >> r;
 
-    cout << "\nd\n";
-    cin >> d;
+  cout << "\nd\n";
+  cin >> d;
 
-    cout << "\nNumber of steps\n";
-	cin >> Steps;
+  cout << "\nNumber of steps\n";
+  cin >> Steps;
 
-    PayOffCall thePayOff(Strike);
+  PayOffCall thePayOff(Strike);
 
-    ParametersConstant rParam(r);
-    ParametersConstant dParam(d);
+  ParametersConstant rParam(r);
+  ParametersConstant dParam(d);
 
-    TreeEuropean europeanOption(Expiry,thePayOff);
-    TreeAmerican americanOption(Expiry,thePayOff);
+  TreeEuropean europeanOption(Expiry, thePayOff);
+  TreeAmerican americanOption(Expiry, thePayOff);
 
-    SimpleBinomialTree theTree(Spot,rParam,dParam,Vol,Steps,Expiry);
-    double euroPrice = theTree.GetThePrice(europeanOption);
-    double americanPrice = theTree.GetThePrice(americanOption);
-    cout << "euro price " << euroPrice << " amer price " << americanPrice << "\n";
+  SimpleBinomialTree theTree(Spot, rParam, dParam, Vol, Steps, Expiry);
+  double euroPrice = theTree.GetThePrice(europeanOption);
+  double americanPrice = theTree.GetThePrice(americanOption);
+  cout << "euro price " << euroPrice << " amer price " << americanPrice << "\n";
 
-    double BSPrice = BlackScholesCall(Spot,Strike,r,d,Vol,Expiry);
-    cout << "BS formula euro price " << BSPrice << "\n";
-    
-    PayOffForward forwardPayOff(Strike);
-    TreeEuropean forward(Expiry,forwardPayOff);
+  double BSPrice = BlackScholesCall(Spot, Strike, r, d, Vol, Expiry);
+  cout << "BS formula euro price " << BSPrice << "\n";
 
-    double forwardPrice = theTree.GetThePrice(forward);
-    cout << "forward price by tree " << forwardPrice << "\n";
+  PayOffForward forwardPayOff(Strike);
+  TreeEuropean forward(Expiry, forwardPayOff);
 
-    double actualForwardPrice = exp(-r*Expiry)*(Spot*exp((r-d)*Expiry)-Strike);
-    cout << "forward price " << actualForwardPrice << "\n";
+  double forwardPrice = theTree.GetThePrice(forward);
+  cout << "forward price by tree " << forwardPrice << "\n";
 
-    Steps++; // now redo the trees with one more step
-    SimpleBinomialTree theNewTree(Spot,rParam,dParam,Vol,Steps,Expiry);
+  double actualForwardPrice =
+      exp(-r * Expiry) * (Spot * exp((r - d) * Expiry) - Strike);
+  cout << "forward price " << actualForwardPrice << "\n";
 
-    double euroNewPrice = theNewTree.GetThePrice(europeanOption);
-    double americanNewPrice = theNewTree.GetThePrice(americanOption);
+  Steps++; // now redo the trees with one more step
+  SimpleBinomialTree theNewTree(Spot, rParam, dParam, Vol, Steps, Expiry);
 
-    cout << "euro new price " << euroNewPrice << " amer new price " << americanNewPrice << "\n";
+  double euroNewPrice = theNewTree.GetThePrice(europeanOption);
+  double americanNewPrice = theNewTree.GetThePrice(americanOption);
 
-    double forwardNewPrice = theNewTree.GetThePrice(forward);
+  cout << "euro new price " << euroNewPrice << " amer new price "
+       << americanNewPrice << "\n";
 
-    cout << "forward price by new tree " << forwardNewPrice << "\n";
+  double forwardNewPrice = theNewTree.GetThePrice(forward);
 
-    double averageEuro = 0.5*(euroPrice + euroNewPrice);
-    double averageAmer = 0.5*(americanPrice + americanNewPrice);
-    double averageForward = 0.5*(forwardPrice + forwardNewPrice);
+  cout << "forward price by new tree " << forwardNewPrice << "\n";
 
-    cout << "euro av price " << averageEuro << " amer av price " << averageAmer << "\n";
-    cout << "av forward " << averageForward << "\n";
+  double averageEuro = 0.5 * (euroPrice + euroNewPrice);
+  double averageAmer = 0.5 * (americanPrice + americanNewPrice);
+  double averageForward = 0.5 * (forwardPrice + forwardNewPrice);
 
-    double tmp;
-    cin >> tmp;
+  cout << "euro av price " << averageEuro << " amer av price " << averageAmer
+       << "\n";
+  cout << "av forward " << averageForward << "\n";
 
-	return 0;
+  double tmp;
+  cin >> tmp;
+
+  return 0;
 }
 
 /*
@@ -122,5 +124,4 @@ int main()
  * Mark Joshi makes no representations about the
  * suitability of this software for any purpose. It is provided
  * "as is" without express or implied warranty.
-*/
-
+ */

@@ -52,8 +52,8 @@ MJArray::MJArray(const MJArray& original)
 
 MJArray::~MJArray()
 {
-	if (ValuesPtr >0)
-		delete [] ValuesPtr;
+  if (ValuesPtr != (void *) NULL) //(ValuesPtr >0)
+    delete [] ValuesPtr;
 }
 
 

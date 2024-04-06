@@ -3,7 +3,7 @@
 #include <cmath>
 #include <iostream>
 #include <codi.hpp>
-using Real = codi::RealReverse;
+using Real = codi::RealForward;
 
 
 class BinModel
