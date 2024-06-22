@@ -5,16 +5,9 @@
 #include <sstream>
 #include <string>
 #include <utility>
-#include <vector>
-#include <set>
 
 using namespace std;
 
-
-/*!
- * \class ParseInput
- * \brief Parses and input file and groups inputs into a map
- */
 class ParseInput {
 
   // Function to trim spaces from the beginning and end of a string
@@ -188,5 +181,27 @@ Config1 buildConfig(std::string input){
   parse.read_file(input);
   Config1 config = Config1(parse.map_containers,
 			   parse.map_vars);
+  return config;
 }
 
+
+int main() {
+
+  auto config = buildConfig("input4.txt");
+
+  //std::cout << " =>  a1:" << config.a1 << ", "  << std::endl;
+  std::cout << " =>  a:" << config.ct1->a << ", "  << std::endl;
+  std::cout << " =>  b:" << config.ct1->b << ", "  << std::endl;    
+  // config.SetValues(myMap);
+  // for (auto const &x : myMap) {
+  //   std::cout << x.first         // string (key)
+  //             << ':' << x.second // string's value
+  //             << std::endl;
+  // }
+  // std::cout << "###########" << std::endl;
+  // std::cout << "a " << config.a << std::endl;
+  // std::cout << "b " << config.b << std::endl;
+  // std::cout << "d " << config.b + config.a << std::endl;
+    
+  return 0;
+}
