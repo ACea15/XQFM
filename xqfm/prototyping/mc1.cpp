@@ -58,7 +58,7 @@ int main() {
 
     std::map<std::string, std::string> mc1 = {
       {"strike", "1."}, {"spot", "100."},    {"vol", "0.3"},
-      {"rate", "0."},   {"numSteps", "252"}, {"numPaths", "10000000"},
+      {"rate", "0."},   {"numSteps", "300"}, {"numPaths", "500000"},
       {"period", "1."},
     };
 

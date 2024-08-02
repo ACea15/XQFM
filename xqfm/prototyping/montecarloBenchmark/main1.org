@@ -1,0 +1,411 @@
+* House keeping  :noexport: 
+
+#+begin_src elisp :results none :tangle no :exports none
+  (setq org-confirm-babel-evaluate nil)
+  (define-key org-mode-map (kbd "C-c ]") 'org-ref-insert-link)
+  (setq org-latex-pdf-process
+    '("latexmk -pdflatex='pdflatex --syntex=1 -interaction nonstopmode' -pdf -bibtex -f %f"))
+  (pyvenv-workon "feniax")
+  (require 'org-tempo)
+#+end_src
+
+* Parameters
+#+NAME: python_parameters
+#+begin_src python :session py1 :var output="OMEGA_MODE"
+  STRIKE = 1.
+  SPOT = 100.
+  VOL = 0.3
+  RATE = 0.03
+  T = 1.
+  NUMSTEPS = 300
+  NUMPATHS = int(5E5)
+#+end_src
+
+#+NAME: parameters_eval
+#+begin_src python :session py1 :noweb yes :var output="OMEGA_MODE"
+  <<python_parameters>>
+  eval(output)
+#+end_src
+
+* JAX montecarlo
+#+begin_src python :session py1 :noweb yes :results raw
+  import jax
+  import jax.numpy as jnp
+  import jax.random as random
+  from functools import partial
+  import time
+  <<python_parameters>>
+
+  @partial(jax.jit, static_argnames=["num_steps"])
+  def montecarlo_simulation(key, S0, mu, sigma, T, num_steps):
+
+      dt = T / num_steps
+      # initial_state = (S0 * jnp.ones(num_simulations), dt, mu, sigma)
+      key, subkey = random.split(key)
+      z = random.normal(subkey, shape=(num_steps,))
+
+      def montecarlo_step(carry, zi):
+          S_new = carry * jnp.exp((mu - 0.5 * sigma ** 2) * dt + sigma * jnp.sqrt(dt) * zi)
+          return S_new, S_new
+
+      _, path = jax.lax.scan(montecarlo_step, S0, z)
+
+      return path
+
+
+  # Generate random keys
+  rng_key = random.PRNGKey(0)
+  rng_keys = jax.random.split(rng_key, NUMPATHS)  # (nchains,)
+  t1 = time.time()
+  montecarlo_vmap = jax.vmap(montecarlo_simulation, in_axes=((0,) + (None,)*5), out_axes=1)
+  # Run simulation
+  S = montecarlo_vmap(rng_keys, SPOT, RATE, VOL, T, NUMSTEPS)
+  t2 = time.time()
+  duration = t2 - t1
+  #print(f"Totalpaths: {NUMPATHS}")
+  #print(f"Duration(seconds): {duration}")
+  import pandas as pd
+  from tabulate import tabulate
+  d = {"Totalpaths:": [NUMPATHS], "Duration(seconds):": [duration]}
+  tabulate(d,headers=d.keys(),tablefmt='orgtbl')
+#+end_src
+
+#+RESULTS:
+| Totalpaths: | Duration(seconds): |
+|-------------+--------------------|
+|      500000 |            2.11752 |
+
+* C++ montecarlo
+:PROPERTIES:
+:header-args: :includes <iostream> <chrono> <random> <vector> <cmath> <valarray> <stdexcept> 
+:END:
+
+Unable to compile using :flags to include XMatrix file so including that directly in the org file
+
+#+NAME:XMatrix
+#+begin_src C++ 
+
+  class XMatrix {
+  private:
+    std::valarray<double> data;
+    size_t rows, cols;
+
+  public:
+    // Default constructor
+    XMatrix();
+
+      // Constructor with dimensions
+    XMatrix(size_t rows, size_t cols);
+      // Constructor with initializer list
+    XMatrix(std::initializer_list<std::initializer_list<double>> init);
+
+    // Get number of rows
+    size_t numRows() const;
+    // Get number of columns
+    size_t numCols() const;
+
+    // access operator
+    double& operator()(size_t row, size_t col);
+    // access operator
+    const double& operator()(size_t row, size_t col) const;  
+    // Matrix addition
+    XMatrix operator+(const XMatrix& other) const;
+    // Matrix subtraction
+    XMatrix operator-(const XMatrix& other) const;
+    // Matrix multiplication
+    XMatrix operator*(const XMatrix& other) const;
+    // Print matrix (for debugging)
+    void print() const;
+  };
+
+  XMatrix::XMatrix(): rows(0), cols(0) {}
+
+  XMatrix::XMatrix(size_t rows, size_t cols) : rows(rows), cols(cols), data(rows * cols) {}
+
+  // Constructor with initializer list
+  XMatrix::XMatrix(std::initializer_list<std::initializer_list<double>> init) {
+          rows = init.size();
+          cols = init.begin()->size();
+          data.resize(rows * cols);
+          size_t index = 0;
+          for (const auto& row : init) {
+              for (const auto& elem : row) {
+                  data[index++] = elem;
+              }
+          }
+      }
+
+  double& XMatrix::operator()(size_t row, size_t col) {
+          // if (row >= rows || col >= cols) {
+          //     throw std::out_of_range("Index out of range.");
+          // }
+          return data[row * cols + col];
+      }
+
+  const double& XMatrix::operator()(size_t row, size_t col) const {
+          // if (row >= rows || col >= cols) {
+          //     throw std::out_of_range("Index out of range.");
+          // }
+          return data[row * cols + col];
+      }
+
+  size_t XMatrix::numRows() const { return rows; }
+  size_t XMatrix::numCols() const { return cols; }
+
+  XMatrix XMatrix::operator+(const XMatrix& other) const {
+          if (rows != other.rows || cols != other.cols) {
+              throw std::invalid_argument("Matrices dimensions do not match for addition.");
+          }
+          XMatrix result(rows, cols);
+          result.data = data + other.data;
+          return result;
+      }
+
+  XMatrix XMatrix::operator-(const XMatrix& other) const {
+          if (rows != other.rows || cols != other.cols) {
+              throw std::invalid_argument("Matrices dimensions do not match for addition.");
+          }
+          XMatrix result(rows, cols);
+          result.data = data - other.data;
+          return result;
+      }
+
+  XMatrix XMatrix::operator*(const XMatrix& other) const {
+          if (cols != other.rows) {
+              throw std::invalid_argument("Matrices dimensions do not match for multiplication.");
+          }
+          XMatrix result(rows, other.cols);
+          for (size_t i = 0; i < rows; ++i) {
+              for (size_t j = 0; j < other.cols; ++j) {
+                  double sum = 0.0;
+                  for (size_t k = 0; k < cols; ++k) {
+                      sum += (*this)(i, k) * other(k, j);
+                  }
+                  result(i, j) = sum;
+              }
+          }
+          return result;
+      }
+
+  void XMatrix::print() const {
+         for (size_t i = 0; i < rows; ++i) {
+              for (size_t j = 0; j < cols; ++j) {
+                  std::cout << (*this)(i, j) << " ";
+              }
+              std::cout << "\n";
+          }    }
+
+
+#+end_src
+
+#+NAME:mcAnalytical
+#+begin_src C++ 
+  XMatrix mcAnalytical(unsigned long numPaths, unsigned long numSteps, double T,
+                        double mu, double sigma, double S0) {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::normal_distribution<> dis(0.0, 1.0);
+
+    double dt = T / numSteps;
+    double sqrt_dt = std::sqrt(dt);
+    XMatrix S(numPaths, numSteps);
+
+    for (unsigned long i = 0; i < numPaths; ++i) {
+      S(i, 0) = S0;
+      for (unsigned long j = 1; j < numSteps; ++j) {
+        double dW = dis(gen) * sqrt_dt;
+        S(i, j) = S(i, j - 1) * std::exp((mu - 0.5*sigma*sigma)*dt + sigma*dW);
+      };
+    };
+
+    return S;
+  }
+#+end_src
+
+#+NAME:mcMain
+#+begin_src C++ :noweb yes :tangle debugCpp.cpp 
+  <<XMatrix>>
+  <<mcAnalytical>>
+  int main(){
+  double strike = <<parameters_eval(output="STRIKE")>>;
+  double spot = <<parameters_eval(output="SPOT")>>;
+  double vol = <<parameters_eval(output="VOL")>>;
+  double rate = <<parameters_eval(output="RATE")>>;
+  int numPaths = <<parameters_eval(output="NUMPATHS")>>;
+  int numSteps = <<parameters_eval(output="NUMSTEPS")>>;
+  double T = <<parameters_eval(output="T")>>;
+
+  auto start = std::chrono::high_resolution_clock::now();
+  XMatrix averageFinalValue = mcAnalytical(numPaths, numSteps, T, rate, vol, spot);
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> duration = end - start;
+  //std::cout << "Estimated average final value: " << averageFinalValue << std::endl;
+  std::cout << "Totalpaths: " << numPaths << std::endl;
+  std::cout << "Duration(seconds): " << duration.count() <<  std::endl;
+  return 0;
+  }
+#+end_src
+
+Optimization flags being tested:
+-O3: Enables aggressive optimization.
+-march=native: Optimizes the code for the local machine's CPU.
+-flto: Enables link-time optimization.
+-funroll-loops: Unrolls loops to potentially increase performance.
+-ftree-vectorize: Enables automatic vectorization of loops.
+
+#+NAME:mcMain0
+#+begin_src C++ :noweb yes
+  <<mcMain>>
+#+end_src
+
+#+RESULTS: mcMain0
+| Totalpaths:        |  500000 |
+| Duration(seconds): | 24.6275 |
+
+#+NAME:mcMain1
+#+begin_src C++ :noweb yes :flags -O3 
+  <<mcMain>>
+#+end_src
+
+#+RESULTS: mcMain1
+| Totalpaths:        | 1000000 |
+| Duration(seconds): | 25.0309 |
+
+#+NAME:mcMain2
+#+begin_src C++ :noweb yes :flags -O3 -march=native
+  <<mcMain>>
+#+end_src
+
+#+RESULTS: mcMain2
+| Totalpaths:        | 1000000 |
+| Duration(seconds): | 19.3637 |
+
+#+NAME:mcMain3
+#+begin_src C++ :noweb yes :flags -O3 -march=native -ftree-vectorize
+  <<mcMain>>
+#+end_src
+
+#+RESULTS: mcMain3
+| Totalpaths:        | 1000000 |
+| Duration(seconds): |  18.823 |
+
+#+NAME:mcMain4
+#+begin_src C++ :noweb yes :flags -O3 -march=native -ftree-vectorize -flto
+  <<mcMain>>
+#+end_src
+
+#+RESULTS: mcMain4
+| Totalpaths:        | 1000000 |
+| Duration(seconds): | 18.2234 |
+
+#+NAME:mcMain5
+#+begin_src C++ :noweb yes :flags -O3 -march=native -ftree-vectorize -flto -ftree-vectorize
+  <<mcMain>>
+#+end_src
+
+#+RESULTS: mcMain5
+| Totalpaths:        | 1000000 |
+| Duration(seconds): | 18.1082 |
+
+
+#+begin_src python
+  plt.figure(figsize=(10, 6))
+  plt.plot(S[:, :300], lw=1.5)
+  plt.title('Monte Carlo Simulation of Asset Prices')
+  plt.xlabel('Time Steps')
+  plt.ylabel('Asset Price')
+  plt.grid(True)
+  plt.show()
+  
+#+end_src
+# Plot the simulation results
+
+
+* C++ montecarlo concurrent
+Certainly! Below is a more comprehensive example of how to perform a Monte Carlo simulation to estimate the value of π using C++ threads. This example uses multiple threads to parallelize the simulation.
+
+```cpp
+#include <iostream>
+#include <vector>
+#include <thread>
+#include <random>
+#include <atomic>
+#include <chrono>
+
+// Total number of points to simulate per thread
+const int POINTS_PER_THREAD = 1000000;
+const int NUM_THREADS = 4;
+
+// Atomic variable to hold the number of points inside the circle for thread-safe counting
+std::atomic<int> total_inside_circle(0);
+
+void monte_carlo_simulation(int points) {
+    // Random number generator setup
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dis(0.0, 1.0);
+
+    // Local count of points inside the circle
+    int local_inside_circle = 0;
+
+    for (int i = 0; i < points; ++i) {
+        double x = dis(gen);
+        double y = dis(gen);
+        if (x*x + y*y <= 1.0) {
+            ++local_inside_circle;
+        }
+    }
+
+    // Update the global total with the local count
+    total_inside_circle += local_inside_circle;
+}
+
+int main() {
+    // Vector to hold the thread objects
+    std::vector<std::thread> threads;
+
+    // Start time to measure execution time
+    auto start_time = std::chrono::high_resolution_clock::now();
+
+    // Launch threads
+    for (int i = 0; i < NUM_THREADS; ++i) {
+        threads.emplace_back(monte_carlo_simulation, POINTS_PER_THREAD);
+    }
+
+    // Join threads
+    for (auto& t : threads) {
+        if (t.joinable()) {
+            t.join();
+        }
+    }
+
+    // End time to measure execution time
+    auto end_time = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration = end_time - start_time;
+
+    // Calculate the estimated value of π
+    double pi_estimate = 4.0 * total_inside_circle / (POINTS_PER_THREAD * NUM_THREADS);
+
+    // Output results
+    std::cout << "Estimated π = " << pi_estimate << std::endl;
+    std::cout << "Execution time: " << duration.count() << " seconds" << std::endl;
+
+    return 0;
+}
+```
+
+### Explanation:
+
+1. **Random Number Generation**: Each thread uses a random number generator to create points within the unit square \([0, 1] \times [0, 1]\).
+
+2. **Monte Carlo Simulation**: Each thread runs a loop to generate a large number of points and checks if they fall inside the unit circle (\(x^2 + y^2 \leq 1\)).
+
+3. **Concurrency with Threads**: Multiple threads are launched, each running an independent instance of the Monte Carlo simulation. The results are stored in an atomic variable to ensure thread safety.
+
+4. **Joining Threads**: The main thread waits for all worker threads to complete using `join`.
+
+5. **Calculating π**: The estimated value of π is calculated using the formula \(\pi \approx 4 \times (\text{points inside circle}) / (\text{total points})\).
+
+6. **Performance Measurement**: The execution time is measured using `std::chrono` to give an idea of the performance improvement from using concurrency.
+
+This example demonstrates a simple, yet powerful use of concurrency to accelerate a Monte Carlo simulation in C++.
