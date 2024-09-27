@@ -2,11 +2,11 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <set>
 #include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
-#include <set>
 
 #include "Config.hpp"
 
@@ -57,62 +57,44 @@ void ParseInput::read_file(string file_name) {
   }
 }
 
-void Container::writeValue(std::map<std::string, std::string> map,
-                           std::string name, int &value) {
-  std::istringstream iss(map[name]);
-  iss >> value;
-}
-void Container::writeValue(std::map<std::string, std::string> map,
-                           std::string name, unsigned long &value) {
-  std::istringstream iss(map[name]);
-  iss >> value;
-}
-void Container::writeValue(std::map<std::string, std::string> map,
-                           std::string name, double &value) {
-  std::istringstream iss(map[name]);
-  iss >> value;
-}
-void Container::writeValue(std::map<std::string, std::string> map,
-                           std::string name, std::string &value) {
-  std::istringstream iss(map[name]);
-  iss >> value;
-}
+
 
 
 Config1::Config1(std::map<string, std::map<string, string>> map,
-	  std::map<std::string, std::string> map_vars) {
-    SetValues(map_vars);
-    SetContainers(map);
-  }
+                 std::map<std::string, std::string> map_vars) {
+  SetValues(map_vars);
+  SetContainers(map);
+}
 Config1::Config1(std::map<string, std::map<string, string>> map) {
-    SetContainers(map);
-  }
-  
-void Config1::SetContainers(std::map<string, std::map<string, string>> map) {
-    for (const auto &mi : map) {
-      const std::map<string, string> &innerMap = mi.second;
-      std::string value = mi.first;
-      if (value == "Cmc1")
-	ct1 = new Cmc1(innerMap);
-        std::cout << "*** Setting" << value << std::endl;
-    }
-  }
-  
-  void Config1::SetValues(std::map<std::string, std::string> mapvars) {
-    if (!map_vars.empty())
-      map_vars = mapvars;
-  }
-  void Config1::Serialise(std::map<char, std::string> map) {}
-  
- Config1::~Config1() {
-    if (ct1 != nullptr)
-      delete ct1;
-  }
+  SetContainers(map);
+}
 
-Config1 buildConfig(std::string input){
+void Config1::SetContainers(std::map<string, std::map<string, string>> map) {
+  for (const auto &mi : map) {
+    const std::map<string, string> &innerMap = mi.second;
+    std::string value = mi.first;
+    if (value == "Cmc1")
+      ct1 = new Cmc1(innerMap);
+    std::cout << "*** Setting" << value << std::endl;
+  }
+}
+
+void Config1::SetValues(std::map<std::string, std::string> mapvars) {
+  if (!map_vars.empty())
+    map_vars = mapvars;
+}
+
+void Config1::Serialise(std::map<char, std::string> map) {}
+
+Config1::~Config1() {
+  if (ct1 != nullptr)
+    delete ct1;
+}
+
+template<typename T>
+Config1 buildConfig(std::string input) {
   ParseInput parse = ParseInput();
   parse.read_file(input);
-  Config1 config = Config1(parse.map_containers,
-			   parse.map_vars);
+  Config1 config = Config1(parse.map_containers, parse.map_vars);
   return config;
 }

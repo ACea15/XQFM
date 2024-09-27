@@ -20,57 +20,9 @@ class ParseInput {
   
 };
 
-struct Container {
-
-  virtual void SetValues(std::map<std::string, std::string> map) = 0;
-  virtual ~Container() = default;
-  
-  void writeValue(std::map<std::string, std::string> map,
-		  std::string name,
-		  int &value);
-  void writeValue(std::map<std::string, std::string> map,
-		  std::string name,
-		  double &value);
-  void writeValue(std::map<std::string, std::string> map,
-		  std::string name,
-		  std::string &value);
-  void writeValue(std::map<std::string, std::string> map,
-		  std::string name,
-		  unsigned long &value);
-};
-
-struct Cmc1: Container {
-
-  
-  double mu;
-  double strike;
-  double spot; 
-  double vol; 
-  double rate;
-  double period;
-  unsigned long numPaths;
-  unsigned long numSteps;
-
-  Cmc1(std::map<std::string, std::string> map) {
-    SetValues(map);
-  }
-    
-  void SetValues(std::map<std::string, std::string> map) override {
-    writeValue(map, "mu", mu);    
-    writeValue(map, "strike", strike);
-    writeValue(map, "spot", spot);
-    writeValue(map, "vol", vol);
-    writeValue(map, "rate", rate);
-    writeValue(map, "period", period);
-    writeValue(map, "numPaths", numPaths);
-    writeValue(map, "numSteps", numSteps);    
-  }
-  
-};
-
-
 class Config {
 public:
+  
   virtual void SetContainers(std::map<string, std::map<string, string>> map) =0;
   virtual void SetValues(std::map<std::string, std::string> map_vars) = 0;
   virtual void Serialise(std::map<char, std::string> map) = 0;
