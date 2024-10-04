@@ -5,7 +5,7 @@
 #include <chrono>
 #include <cmath>
 
-#include "../Futils/Config.hpp"
+// #include "../Futils/Config.hpp"
 #include "XMatrix.hpp"
 
 // Function to perform the Euler-Maruyama step for the SDE

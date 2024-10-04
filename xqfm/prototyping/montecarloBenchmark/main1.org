@@ -73,7 +73,7 @@
 #+RESULTS:
 | Totalpaths: | Duration(seconds): |
 |-------------+--------------------|
-|      500000 |            2.11752 |
+|      500000 |            2.33912 |
 
 * C++ montecarlo
 :PROPERTIES:
@@ -260,7 +260,7 @@ Optimization flags being tested:
 
 #+RESULTS: mcMain0
 | Totalpaths:        |  500000 |
-| Duration(seconds): | 24.6275 |
+| Duration(seconds): | 44.4328 |
 
 #+NAME:mcMain1
 #+begin_src C++ :noweb yes :flags -O3 
@@ -268,8 +268,8 @@ Optimization flags being tested:
 #+end_src
 
 #+RESULTS: mcMain1
-| Totalpaths:        | 1000000 |
-| Duration(seconds): | 25.0309 |
+| Totalpaths:        |  500000 |
+| Duration(seconds): | 9.31243 |
 
 #+NAME:mcMain2
 #+begin_src C++ :noweb yes :flags -O3 -march=native
@@ -277,8 +277,8 @@ Optimization flags being tested:
 #+end_src
 
 #+RESULTS: mcMain2
-| Totalpaths:        | 1000000 |
-| Duration(seconds): | 19.3637 |
+| Totalpaths:        |  500000 |
+| Duration(seconds): | 8.60367 |
 
 #+NAME:mcMain3
 #+begin_src C++ :noweb yes :flags -O3 -march=native -ftree-vectorize
@@ -286,8 +286,8 @@ Optimization flags being tested:
 #+end_src
 
 #+RESULTS: mcMain3
-| Totalpaths:        | 1000000 |
-| Duration(seconds): |  18.823 |
+| Totalpaths:        |  500000 |
+| Duration(seconds): | 8.45422 |
 
 #+NAME:mcMain4
 #+begin_src C++ :noweb yes :flags -O3 -march=native -ftree-vectorize -flto
@@ -295,8 +295,8 @@ Optimization flags being tested:
 #+end_src
 
 #+RESULTS: mcMain4
-| Totalpaths:        | 1000000 |
-| Duration(seconds): | 18.2234 |
+| Totalpaths:        |  500000 |
+| Duration(seconds): | 8.40317 |
 
 #+NAME:mcMain5
 #+begin_src C++ :noweb yes :flags -O3 -march=native -ftree-vectorize -flto -ftree-vectorize
@@ -304,8 +304,8 @@ Optimization flags being tested:
 #+end_src
 
 #+RESULTS: mcMain5
-| Totalpaths:        | 1000000 |
-| Duration(seconds): | 18.1082 |
+| Totalpaths:        | 500000 |
+| Duration(seconds): | 8.4034 |
 
 
 #+begin_src python
@@ -318,94 +318,98 @@ Optimization flags being tested:
   plt.show()
   
 #+end_src
-# Plot the simulation results
 
 
 * C++ montecarlo concurrent
-Certainly! Below is a more comprehensive example of how to perform a Monte Carlo simulation to estimate the value of π using C++ threads. This example uses multiple threads to parallelize the simulation.
+:PROPERTIES:
+:header-args: :includes <iostream> <chrono> <random> <vector> <cmath> <valarray> <stdexcept> <thread>
+:END:
 
-```cpp
-#include <iostream>
-#include <vector>
-#include <thread>
-#include <random>
-#include <atomic>
-#include <chrono>
+#+NAME:mcAnalyticalconcurrent
+#+begin_src C++ 
+    XMatrix mcAnalyticalc(unsigned long startPath, unsigned long numPaths, unsigned long numSteps, double T, double dt, double sqrt_dt,
+                          double mu, double sigma, double S0, XMatrix& S) {
+      std::random_device rd;
+      std::mt19937 gen(rd());
+      std::normal_distribution<> dis(0.0, 1.0);
 
-// Total number of points to simulate per thread
-const int POINTS_PER_THREAD = 1000000;
-const int NUM_THREADS = 4;
 
-// Atomic variable to hold the number of points inside the circle for thread-safe counting
-std::atomic<int> total_inside_circle(0);
+      for (unsigned long i = 0; i < numPaths; ++i) {
+        S(startPath +i, 0) = S0;
+        for (unsigned long j = 1; j < numSteps; ++j) {
+          double dW = dis(gen) * sqrt_dt;
+          S(i, j) = S(i, j - 1) * std::exp((mu - 0.5*sigma*sigma)*dt + sigma*dW);
+          S(startPath +i, j) = S(startPath +i, j - 1) * std::exp((mu - 0.5*sigma*sigma)*dt + sigma*dW);
+        };
+      };
 
-void monte_carlo_simulation(int points) {
-    // Random number generator setup
+      return S;
+    }
+
+  XMatrix eulerMaruyamac(unsigned long startPath, unsigned long numPaths, unsigned long numSteps, double T, double dt, double sqrt_dt,
+                        double mu, double sigma, double S0, XMatrix& S) {
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<> dis(0.0, 1.0);
+    std::normal_distribution<> dis(0.0, 1.0);
 
-    // Local count of points inside the circle
-    int local_inside_circle = 0;
 
-    for (int i = 0; i < points; ++i) {
-        double x = dis(gen);
-        double y = dis(gen);
-        if (x*x + y*y <= 1.0) {
-            ++local_inside_circle;
-        }
+    for (unsigned long i = 0; i < numPaths; ++i) {
+      S(startPath +i, 0) = S0;
+      for (unsigned long j = 1; j < numSteps; ++j) {
+        double dW = dis(gen) * sqrt_dt;
+        S(startPath +i, j) = mu * S(startPath +i, j - 1) * dt + sigma * S(startPath +i, j - 1) * dW;
+      };
+    };
+
+    return S;
+  }
+
+
+#+end_src
+
+
+#+NAME:mcMainconcurrent
+#+begin_src C++ :noweb yes :tangle debugCppcuncurrent.cpp :flags -O3 -march=native -pthread 
+  <<XMatrix>>
+  <<mcAnalyticalconcurrent>>
+  int main(){
+  double strike = <<parameters_eval(output="STRIKE")>>;
+  double spot = <<parameters_eval(output="SPOT")>>;
+  double vol = <<parameters_eval(output="VOL")>>;
+  double rate = <<parameters_eval(output="RATE")>>;
+  int numPaths = <<parameters_eval(output="NUMPATHS")>>;
+  int numSteps = <<parameters_eval(output="NUMSTEPS")>>;
+  double T = <<parameters_eval(output="T")>>;
+  double dt = T / numSteps;
+  double sqrt_dt = std::sqrt(dt);
+  XMatrix S(numPaths, numSteps);
+
+  unsigned int numThreads = std::thread::hardware_concurrency();
+  std::vector<std::thread> threads;
+  unsigned long pathsPerThread = numPaths / numThreads;
+  auto start = std::chrono::high_resolution_clock::now();
+  // Launch threads
+  for (unsigned int i = 0; i < numThreads; ++i) {
+    unsigned long startPath = i * pathsPerThread;
+    threads.emplace_back(mcAnalyticalc, startPath, pathsPerThread, numSteps, T, dt, sqrt_dt, rate, vol, spot, std::ref(S));
     }
 
-    // Update the global total with the local count
-    total_inside_circle += local_inside_circle;
-}
-
-int main() {
-    // Vector to hold the thread objects
-    std::vector<std::thread> threads;
-
-    // Start time to measure execution time
-    auto start_time = std::chrono::high_resolution_clock::now();
-
-    // Launch threads
-    for (int i = 0; i < NUM_THREADS; ++i) {
-        threads.emplace_back(monte_carlo_simulation, POINTS_PER_THREAD);
+  // Join threads
+  for (auto &t : threads) {
+    t.join();
     }
 
-    // Join threads
-    for (auto& t : threads) {
-        if (t.joinable()) {
-            t.join();
-        }
-    }
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> duration = end - start;
 
-    // End time to measure execution time
-    auto end_time = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> duration = end_time - start_time;
 
-    // Calculate the estimated value of π
-    double pi_estimate = 4.0 * total_inside_circle / (POINTS_PER_THREAD * NUM_THREADS);
+  //std::cout << "Estimated average final value: " << averageFinalValue << std::endl;
+  std::cout << "Totalpaths: " << numPaths << std::endl;
+  std::cout << "Duration(seconds): " << duration.count() <<  std::endl;
+  return 0;
+  }
+#+end_src
 
-    // Output results
-    std::cout << "Estimated π = " << pi_estimate << std::endl;
-    std::cout << "Execution time: " << duration.count() << " seconds" << std::endl;
-
-    return 0;
-}
-```
-
-### Explanation:
-
-1. **Random Number Generation**: Each thread uses a random number generator to create points within the unit square \([0, 1] \times [0, 1]\).
-
-2. **Monte Carlo Simulation**: Each thread runs a loop to generate a large number of points and checks if they fall inside the unit circle (\(x^2 + y^2 \leq 1\)).
-
-3. **Concurrency with Threads**: Multiple threads are launched, each running an independent instance of the Monte Carlo simulation. The results are stored in an atomic variable to ensure thread safety.
-
-4. **Joining Threads**: The main thread waits for all worker threads to complete using `join`.
-
-5. **Calculating π**: The estimated value of π is calculated using the formula \(\pi \approx 4 \times (\text{points inside circle}) / (\text{total points})\).
-
-6. **Performance Measurement**: The execution time is measured using `std::chrono` to give an idea of the performance improvement from using concurrency.
-
-This example demonstrates a simple, yet powerful use of concurrency to accelerate a Monte Carlo simulation in C++.
+#+RESULTS: mcMainconcurrent
+| Totalpaths:        |  500000 |
+| Duration(seconds): | 2.68232 |

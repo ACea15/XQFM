@@ -3,16 +3,14 @@
 #include <random>
 #include <vector>
 #include <cmath>
-
-
-
-
-
-
-int main() {
 #include <valarray>
-#include <iostream>
 #include <stdexcept>
+
+
+
+
+
+
 
 class XMatrix {
 private:
@@ -145,12 +143,12 @@ XMatrix mcAnalytical(unsigned long numPaths, unsigned long numSteps, double T,
 
   return S;
 }
-
+int main(){
 double strike = 1.0;
 double spot = 100.0;
 double vol = 0.3;
 double rate = 0.03;
-int numPaths = 100000;
+int numPaths = 500000;
 int numSteps = 300;
 double T = 1.0;
 
@@ -161,6 +159,5 @@ std::chrono::duration<double> duration = end - start;
 //std::cout << "Estimated average final value: " << averageFinalValue << std::endl;
 std::cout << "Totalpaths: " << numPaths << std::endl;
 std::cout << "Duration(seconds): " << duration.count() <<  std::endl;
-
 return 0;
 }
