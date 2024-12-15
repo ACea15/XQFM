@@ -18,7 +18,7 @@
   RATE = 0.03
   T = 1.
   NUMSTEPS = 300
-  NUMPATHS = int(5E5)
+  NUMPATHS = int(1E6)
 #+end_src
 
 #+NAME: parameters_eval
