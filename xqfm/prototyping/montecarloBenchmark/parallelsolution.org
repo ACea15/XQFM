@@ -1,18 +1,48 @@
+* House keeping  :noexport: 
+
+#+begin_src elisp :results none :tangle no :exports none
+  (setq org-confirm-babel-evaluate nil)
+  (define-key org-mode-map (kbd "C-c ]") 'org-ref-insert-link)
+  (setq org-latex-pdf-process
+    '("latexmk -pdflatex='pdflatex --syntex=1 -interaction nonstopmode' -pdf -bibtex -f %f"))
+  (pyvenv-workon "feniax")
+  (require 'org-tempo)
+#+end_src
+
 * Inputs
 
-#+name: blInputs
-#+begin_src C++
-  double strike = 100.;
-  double spot = 100.0;
-  double vol = 0.3;
-  double rate = 0.03;
-  int numPaths = 10000000;
-  int numSteps = 300;
-  double T = 1.0;
-  double dt = T / numSteps;
-  double dt2 = std::sqrt(dt);
-  double sqrt_dt = std::sqrt(dt);
+#+NAME: python_parameters
+#+begin_src python :session py1 :var output="OMEGA_MODE"
+  STRIKE = 100.
+  SPOT = 100.
+  VOL = 0.3
+  RATE = 0.03
+  T = 1.
+  NUMSTEPS = 300
+  NUMPATHS = int(1E7)
+  dt = T / NUMSTEPS
+  dt2 = dt ** 0.5
 #+end_src
+
+#+NAME: parameters_eval
+#+begin_src python :session py1 :noweb yes :var output="STRIKE"
+  <<python_parameters>>
+  eval(output)
+#+end_src
+
+#+name: blInputs
+#+begin_src C++ :noweb yes
+  double strike = <<parameters_eval(output="STRIKE")>>;
+  double spot = <<parameters_eval(output="SPOT")>>;
+  double vol = <<parameters_eval(output="VOL")>>;
+  double rate = <<parameters_eval(output="RATE")>>;
+  int numPaths = <<parameters_eval(output="NUMPATHS")>>;
+  int numSteps = <<parameters_eval(output="NUMSTEPS")>>;
+  double T = <<parameters_eval(output="T")>>;
+  double dt = <<parameters_eval(output="dt")>>;
+  double sqrt_dt = <<parameters_eval(output="dt2")>>;
+#+end_src
+
 * Cuda
 
 #+begin_src C++ :noweb yes :tangle parallelsolution_cuda1.cpp
@@ -29,7 +59,7 @@
       ,*d_payoff = computed_payoff
   }
 
-  __global__ void monteCarloPaths(double* d_samples, int numPaths, int numSteps, double dt, double dt2, double mu, double sigma, double x0) {
+  __global__ void monteCarloPaths(double* d_samples, int numPaths, int numSteps, double dt, double sqrt_dt, double mu, double sigma, double x0) {
       int pathIdx = blockIdx.x * blockDim.x + threadIdx.x;
       if (pathIdx >= numPaths * numSteps) return;
 
@@ -38,7 +68,7 @@
       ,*d_payoff = computed_payoff
   }
 
-  __device__  void monteCarloPath(int pathIdx, double* d_samples, int numSteps, double dt, double dt2, double mu, double sigma, double x0) {
+  __device__  void monteCarloPath(int pathIdx, double* d_samples, int numSteps, double dt, double sqrt_dt, double mu, double sigma, double x0) {
 
       // Initialize the state of the random number generator for this thread
       curandState state;
@@ -48,9 +78,9 @@
       double x = x0;
       d_samples[pathIdx * numSteps] = x;
       for (int i = 1; i < numSteps; ++i) {
-          double dW = curand_normal(&state) * dt2; // Wiener increment
+          double dW = curand_normal(&state) * sqrt_dt; // Wiener increment
           // x += mu * dt + sigma * dW; // Euler-Maruyama update
-          x += exp((mu - 0.5 * sigma * sigma) * dt + sigma * dW); //exact
+          x *= exp((mu - 0.5 * sigma * sigma) * dt + sigma * dW); //exact
           // Store the final value for this path
           d_samples[pathIdx * numSteps + i] = x;
 
@@ -89,7 +119,7 @@
       //                                               numPaths,
       //                                               numSteps,
       //                                               dt,
-      //                                               dt2,
+      //                                               sqrt_dt,
       //                                               rate,
       //                                               vol,
       //                                               spot);
@@ -97,7 +127,7 @@
                                                       numPaths,
                                                       numSteps,
                                                       dt,
-                                                      dt2,
+                                                      sqrt_dt,
                                                       rate,
                                                       vol,
                                                       spot);
@@ -245,6 +275,45 @@
       return 0;
   }
 #+end_src
+
+* JAX montecarlo
+#+begin_src python :session py1 :noweb yes :tangle parallelsolution_JAX.py
+  import jax
+  import jax.numpy as jnp
+  import jax.random as random
+  from functools import partial
+  import time
+  <<python_parameters>>
+
+  @partial(jax.jit, static_argnames=["num_steps"])
+  def montecarlo_simulation(key, S0, mu, sigma, T, num_steps):
+
+      dt = T / num_steps
+      # initial_state = (S0 * jnp.ones(num_simulations), dt, mu, sigma)
+      key, subkey = random.split(key)
+      z = random.normal(subkey, shape=(num_steps,))
+
+      def montecarlo_step(carry, zi):
+          S_new = carry * jnp.exp((mu - 0.5 * sigma ** 2) * dt + sigma * dt2 * zi)
+          return S_new, S_new
+
+      _, path = jax.lax.scan(montecarlo_step, S0, z)
+
+      return path
+
+  t1 = time.time()
+  # Generate random keys
+  rng_key = random.PRNGKey(0)
+  rng_keys = jax.random.split(rng_key, NUMPATHS)  # (nchains,)
+  montecarlo_vmap = jax.vmap(montecarlo_simulation, in_axes=((0,) + (None,)*5), out_axes=1)
+  # Run simulation
+  S = montecarlo_vmap(rng_keys, SPOT, RATE, VOL, T, NUMSTEPS)
+  t2 = time.time()
+  duration = t2 - t1
+  print(f"Totalpaths: {NUMPATHS}")
+  print(f"Duration(seconds): {duration}")
+#+end_src
+
 * Threads
 #+begin_src C++ :flags -std=c++20 :noweb yes :tangle parallelsolution_threads1.cpp 
   #include <chrono>

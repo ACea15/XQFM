@@ -68,15 +68,15 @@ int main() {
 
   auto start = std::chrono::high_resolution_clock::now();
 
-  double strike = 100.;
+  double strike = 100.0;
   double spot = 100.0;
   double vol = 0.3;
   double rate = 0.03;
   int numPaths = 10000000;
   int numSteps = 300;
   double T = 1.0;
-  double dt = T / numSteps;
-  double sqrt_dt = std::sqrt(dt);
+  double dt = 0.0033333333333333335;
+  double sqrt_dt = 0.05773502691896258;
 
   vector2d S(numPaths, std::vector<double>(numSteps, 0.));
   unsigned int numThreads = std::thread::hardware_concurrency();
