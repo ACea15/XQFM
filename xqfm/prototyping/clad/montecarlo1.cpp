@@ -1,4 +1,4 @@
-#include "../Futils/Config.hpp"
+#include "../../Futils/DConfig.hpp"
 #include "XMatrix.hpp"
 
 #include <chrono>
@@ -56,47 +56,29 @@ XMatrix mcAnalytical(unsigned long numPaths, unsigned long numSteps, double T,
 
 int main() {
 
-    std::map<std::string, std::string> mc1 = {
-      {"strike", "1."}, {"spot", "100."},    {"vol", "0.3"},
-      {"rate", "0."},   {"numSteps", "300"}, {"numPaths", "500000"},
-      {"period", "1."},
-    };
+  
+  Config config;
 
-    std::map<string, std::map<string, string>> map1 = {{"Cmc1", mc1}};
-    Config1 config1(map1);
-
-    double mu = config1.ct1->mu;    
-    double strike = config1.ct1->strike;
-    double spot = config1.ct1->spot;
-    double vol = config1.ct1->vol;
-    double rate = config1.ct1->rate;
-    int numPaths = config1.ct1->numPaths;
-    int numSteps = config1.ct1->numSteps;
-    double T = config1.ct1->period;
-
-    // std::cout << "Estimated average final value: " << strike << std::endl;
-    // std::cout << "Estimated average final value: " << spot << std::endl;
     
-    auto start = std::chrono::high_resolution_clock::now();
+  auto start = std::chrono::high_resolution_clock::now();
     
-    // Perform the Euler-Maruyama simulation
-    XMatrix averageFinalValue = eulerMaruyama(numPaths, numSteps, T, mu, vol, spot);
+  // Perform the Euler-Maruyama simulation
+  XMatrix averageFinalValue = eulerMaruyama(config.num_paths, config.num_steps, config.periodT, config.mu, config.sigma, config.spot);
 
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> duration = end - start;
-
-    auto start2 = std::chrono::high_resolution_clock::now();
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> duration = end - start;
+  // auto start2 = std::chrono::high_resolution_clock::now();
     
-    // Perform the Euler-Maruyama simulation
-    XMatrix averageFinalValue2 = mcAnalytical(numPaths, numSteps, T, mu, vol, spot);
-
-    auto end2 = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> duration2 = end2 - start2;
+  // // Perform the Euler-Maruyama simulation
+  // XMatrix averageFinalValue2 = mcAnalytical(numPaths, numSteps, T, mu, vol, spot);
+  
+  // auto end2 = std::chrono::high_resolution_clock::now();
+  // std::chrono::duration<double> duration2 = end2 - start2;
     
-    //std::cout << "Estimated average final value: " << averageFinalValue << std::endl;
-    std::cout << "Total paths: " << numPaths << std::endl;
-    std::cout << "Duration: " << duration.count() << " seconds" << std::endl;
-    std::cout << "Duration2: " << duration2.count() << " seconds" << std::endl;
+  //std::cout << "Estimated average final value: " << averageFinalValue << std::endl;
+  // std::cout << "Total paths: " << numPaths << std::endl;
+  // std::cout << "Duration: " << duration.count() << " seconds" << std::endl;
+  // std::cout << "Duration2: " << duration2.count() << " seconds" << std::endl;
 
-    return 0;
+  return 0;
 }

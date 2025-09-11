@@ -19,7 +19,7 @@
   RATE = 0.03
   T = 1.
   NUMSTEPS = 300
-  NUMPATHS = int(1E7)
+  NUMPATHS = int(4E6)
   dt = T / NUMSTEPS
   dt2 = dt ** 0.5
 #+end_src
@@ -422,9 +422,9 @@
 #+end_src
 
 #+RESULTS:
-| Totalpaths:        | 10000000 |
-| Duration(seconds): |  107.331 |
-| Price:             |  10.6317 |
+| Totalpaths:        | 4000000 |
+| Duration(seconds): | 27.4579 |
+| Price:             | 10.6306 |
 
 * MPI
 #+begin_src C++

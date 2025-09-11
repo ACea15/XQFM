@@ -1,4 +1,0 @@
-port = 440
-hostname = me
-timeout =   42.55
-max_connections = 10

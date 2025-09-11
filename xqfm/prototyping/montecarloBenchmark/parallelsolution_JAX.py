@@ -1,4 +1,6 @@
 import jax
+jax.config.update("jax_enable_x64", True)
+
 import jax.numpy as jnp
 import jax.random as random
 from functools import partial
@@ -12,6 +14,7 @@ NUMSTEPS = 300
 NUMPATHS = int(1E7)
 dt = T / NUMSTEPS
 dt2 = dt ** 0.5
+
 
 @partial(jax.jit, static_argnames=["num_steps"])
 def montecarlo_simulation(key, S0, mu, sigma, T, num_steps):

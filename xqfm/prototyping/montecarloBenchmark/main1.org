@@ -52,11 +52,10 @@
 
       return path
 
-
+  t1 = time.time()
   # Generate random keys
   rng_key = random.PRNGKey(0)
   rng_keys = jax.random.split(rng_key, NUMPATHS)  # (nchains,)
-  t1 = time.time()
   montecarlo_vmap = jax.vmap(montecarlo_simulation, in_axes=((0,) + (None,)*5), out_axes=1)
   # Run simulation
   S = montecarlo_vmap(rng_keys, SPOT, RATE, VOL, T, NUMSTEPS)
@@ -73,7 +72,19 @@
 #+RESULTS:
 | Totalpaths: | Duration(seconds): |
 |-------------+--------------------|
-|      500000 |            2.33912 |
+|     1000000 |            0.40757 |
+| Totalpaths: | Duration(seconds): |
+|-------------+--------------------|
+|     1000000 |           0.716778 |
+| Totalpaths: | Duration(seconds): |
+|-------------+--------------------|
+|     1000000 |           0.236136 |
+| Totalpaths: | Duration(seconds): |
+|-------------+--------------------|
+|     1000000 |            0.33233 |
+| Totalpaths: | Duration(seconds): |
+|-------------+--------------------|
+|     1000000 |           0.414587 |
 
 * C++ montecarlo
 :PROPERTIES:
@@ -304,8 +315,8 @@ Optimization flags being tested:
 #+end_src
 
 #+RESULTS: mcMain5
-| Totalpaths:        | 500000 |
-| Duration(seconds): | 8.4034 |
+| Totalpaths:        | 1000000 |
+| Duration(seconds): | 10.4422 |
 
 
 #+begin_src python
@@ -411,5 +422,5 @@ Optimization flags being tested:
 #+end_src
 
 #+RESULTS: mcMainconcurrent
-| Totalpaths:        |  500000 |
-| Duration(seconds): | 2.68232 |
+| Totalpaths:        | 1000000 |
+| Duration(seconds): | 5.36305 |

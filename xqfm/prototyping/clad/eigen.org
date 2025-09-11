@@ -1,0 +1,93 @@
+Yes, the automatic differentiation library Clad can be used in
+conjunction with the Eigen library to take derivatives of computations
+performed using Eigen data structures. Both libraries are designed to
+facilitate specific tasks: Clad for automatic differentiation and Eigen
+for linear algebra computations.
+
+*** How to Integrate Clad with Eigen
+    :PROPERTIES:
+    :CUSTOM_ID: how-to-integrate-clad-with-eigen
+    :END:
+
+1. *Setup Clad and Eigen:*
+
+   - Ensure that you have Clad integrated with your clang/LLVM setup.
+     You can find installation instructions in the Clad repository.
+   - Download and include the Eigen library in your project. You can get
+     the Eigen header files from their official website or GitHub
+     repository.
+
+2. *Use Clad to Differentiate Eigen Computations:*
+
+   - When using Clad with Eigen, you can differentiate functions that
+     perform computations involving Eigen types such as matrices and
+     vectors.
+
+3. *Example Usage:*
+
+Here's a simple demonstration of how you might differentiate a function
+using both Eigen for matrix operations and Clad for differentiation.
+
+#+BEGIN_SRC C++ :tangle eigen1.cpp
+  #include <iostream>
+  #include <Eigen/Dense>
+  #include <clad/Differentiator.h>
+
+  using namespace Eigen;
+
+  // A function that uses Eigen for calculations
+  double compute(const VectorXd& v) {
+      // Simple quadratic expression
+      return v.dot(v);
+  }
+
+  int main() {
+      // Set up a vector using Eigen
+      VectorXd v(3);
+      v << 1, 2, 3;
+
+      // Output the original computation result
+      std::cout << "Original Value: " << compute(v) << std::endl;
+
+      // Differentiate using Clad
+      auto grad = clad::gradient(compute);
+
+      // Convert Eigen VectorXd to raw double array
+      double v_array[] = {1.0, 2.0, 3.0};
+
+      // Compute the gradient
+      const auto gradient = grad(v_array);
+
+      // Output the gradient
+      std::cout << "Gradient: ";
+      for (int i = 0; i < 3; ++i) {
+          std::cout << gradient[i] << " ";
+      }
+      std::cout << std::endl;
+
+      return 0;
+  }
+#+END_SRC
+
+*** Key Points
+    :PROPERTIES:
+    :CUSTOM_ID: key-points
+    :END:
+
+- *Data Conversion:* In the example, notice the conversion from Eigen's
+  =VectorXd= to a raw double array, as Clad requires raw pointers for
+  differentiation.
+
+- *Function Design:* When designing functions that will be
+  differentiated, make sure they are compatible with Clad's
+  expectations, i.e., functions that take primitive types or pointers to
+  primitive types and return a single primitive type.
+
+- *Compilation:* Ensure that your C++ compiler is compatible with the
+  Clad and Eigen, and you have correctly linked the paths for the Clad
+  and Eigen headers.
+
+Using Clad with Eigen allows you to leverage the power of automatic
+differentiation over sophisticated linear algebra computations, enabling
+efficient and accurate gradient-based optimization or sensitivity
+analysis.
